@@ -1,5 +1,5 @@
 {
-  "name": "pustaka",
+  "name": "pustaka-api",
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
