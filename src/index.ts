@@ -16,8 +16,8 @@ import { trailMiddleware } from "./middlewares/trail-middleware";
 const app = new Hono<APIConfig>();
 
 // Apply Middlewares
-app.use(corsMiddleware());
 app.onError(errorMiddleware);
+app.use(corsMiddleware());
 
 app.route("/books", bookApp);
 app.route("/users", userApp);

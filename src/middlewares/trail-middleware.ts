@@ -27,7 +27,7 @@ export async function trailMiddleware(ctx: Context<APIConfig>, next: Next) {
     }, ""
   )
 
-  console.log(message);
+  console.log(`[trail:info] ${message}`);
 
   return next();
 }
