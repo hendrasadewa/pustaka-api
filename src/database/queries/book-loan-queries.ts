@@ -4,7 +4,7 @@ import { bookLoansTable } from "../schema";
 import {
   toBookLoanEntity,
   type BookLoanEntity,
-} from "../../routes/loans/entity";
+} from "../../domains/loans/entity";
 import type { PaginationParams } from "../../types/API";
 
 type BookLoanInsert = typeof bookLoansTable.$inferInsert;

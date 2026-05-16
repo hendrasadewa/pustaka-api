@@ -2,10 +2,10 @@ import { Context, Next } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { jwt } from "hono/jwt";
 
-import type { Env } from "../configs/environments";
+import { APIConfig } from "../configs";
 
 export async function jwtGuardMiddleware(
-  ctx: Context<{ Bindings: Env }>,
+  ctx: Context<APIConfig>,
   next: Next,
 ) {
   const secret = ctx.env.JWT_SECRET || "";

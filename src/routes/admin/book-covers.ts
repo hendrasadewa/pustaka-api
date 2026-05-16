@@ -2,48 +2,49 @@ import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { HTTPException } from "hono/http-exception";
 
-import type { Env } from "../../configs/environments";
-import { jwtGuardMiddleware } from "../../middlewares/jwt-guard";
-import { ok, fail } from "../../utils/response";
-import { currentTimestamp, generateExpiryTime } from "../../utils/time";
-import {
-  createUploadToken,
-  getUploadTokenByValue,
-  markTokenUsed,
-} from "../../database/queries/cover-upload-token-queries";
+import { APIConfig } from "../../configs";
+import { jwtGuardMiddleware } from "../../middlewares/jwt-middleware";
 import {
   getBookById,
   getBookByIsbn,
   updateBook,
-} from "../../database/queries/book-queries";
-import { assertBookExists } from "../books/entity";
-import { ALLOWED_MIME_TYPES, type AllowedMimeType, CoverCommitSchema } from "./dto";
+  createUploadToken,
+  getUploadTokenByValue,
+  markTokenUsed,
+} from "../../database/queries";
+import {
+  assertBookExists,
+  ALLOWED_IMAGE_MIMETYPE,
+  type AllowedImageMimeType,
+  CoverCommitSchema,
+} from "../../domains/books";
+import { currentTimestamp, generateExpiryTime, ok, fail, extFromMime } from "../../utils";
 
 const UPLOAD_TOKEN_TTL = 60 * 15; // 15 minutes
 
-function extFromMime(mime: AllowedMimeType): string {
-  const map: Record<AllowedMimeType, string> = {
-    "image/jpeg": "jpg",
-    "image/png": "png",
-    "image/webp": "webp",
-    "image/gif": "gif",
-  };
-  return map[mime];
-}
+const bookCoversApp = new Hono<APIConfig>();
 
-const bookCoversApp = new Hono<{ Bindings: Env }>();
+bookCoversApp
+  .use(jwtGuardMiddleware)
+  .post("/upload-token", async (ctx) => {
+    const token = crypto.randomUUID();
+    const expiresAt = generateExpiryTime(UPLOAD_TOKEN_TTL);
 
-bookCoversApp.post("/upload-token", jwtGuardMiddleware, async (ctx) => {
-  const token = crypto.randomUUID();
-  const expiresAt = generateExpiryTime(UPLOAD_TOKEN_TTL);
+    const record = await createUploadToken(ctx.env.DB, { token, expiresAt });
+    if (!record) {
+      throw new HTTPException(500, {
+        message: "Failed to create upload token",
+      });
+    }
 
-  const record = await createUploadToken(ctx.env.DB, { token, expiresAt });
-  if (!record) {
-    throw new HTTPException(500, { message: "Failed to create upload token" });
-  }
-
-  return ctx.json(ok({ token: record.token, expiresAt: record.expiresAt }, "Upload token issued"), 201);
-});
+    return ctx.json(
+      ok(
+        { token: record.token, expiresAt: record.expiresAt },
+        "Upload token issued",
+      ),
+      201,
+    );
+  });
 
 bookCoversApp.post("/upload", async (ctx) => {
   let formData: FormData;
@@ -75,10 +76,10 @@ bookCoversApp.post("/upload", async (ctx) => {
     return ctx.json(fail("Missing or invalid file field"), 400);
   }
 
-  const mime = file.type as AllowedMimeType;
-  if (!(ALLOWED_MIME_TYPES as readonly string[]).includes(mime)) {
+  const mime = file.type as AllowedImageMimeType;
+  if (!(ALLOWED_IMAGE_MIMETYPE as readonly string[]).includes(mime)) {
     return ctx.json(
-      fail(`Unsupported file type. Allowed: ${ALLOWED_MIME_TYPES.join(", ")}`),
+      fail(`Unsupported file type. Allowed: ${ALLOWED_IMAGE_MIMETYPE.join(", ")}`),
       415,
     );
   }
@@ -98,7 +99,6 @@ bookCoversApp.post("/upload", async (ctx) => {
 
 bookCoversApp.post(
   "/commit",
-  jwtGuardMiddleware,
   zValidator("json", CoverCommitSchema),
   async (ctx) => {
     const { bookId, isbn, coverKey } = ctx.req.valid("json");

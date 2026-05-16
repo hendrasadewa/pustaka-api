@@ -1,29 +1,33 @@
 import { Hono } from "hono";
-import { HTTPException } from "hono/http-exception";
 
 import { Env } from "./configs/environments";
-import { fail } from "./utils/response";
 import bookApp from "./routes/books";
-import bookCoversApp from "./routes/book-covers";
+import bookCoversApp from "./routes/admin/book-covers";
 import userApp from "./routes/users";
-import loanApp from "./routes/loans";
-import { cors } from "hono/cors";
+import loanApp from "./routes/admin/loans";
+import adminBookRoute from "./routes/admin/books";
+import { APIConfig } from "./configs";
+import { jwtGuardMiddleware } from "./middlewares";
+import { corsMiddleware } from "./middlewares/cors-middleware";
+import { errorMiddleware } from "./middlewares/error-middleware";
+import { userMiddleware } from "./middlewares/user-middleware";
+import { trailMiddleware } from "./middlewares/trail-middleware";
 
-const app = new Hono<{ Bindings: Env }>();
+const app = new Hono<APIConfig>();
 
-app.use(cors({ origin: "*" }));
+// Apply Middlewares
+app.use(corsMiddleware());
+app.onError(errorMiddleware);
 
-app.onError((err, ctx) => {
-  if (err instanceof HTTPException) {
-    return ctx.json(fail(err.message), err.status);
-  }
-  console.error(err);
-  return ctx.json(fail("Internal server error", err.message), 500);
-});
-
-app.route("/books/covers", bookCoversApp);
 app.route("/books", bookApp);
 app.route("/users", userApp);
-app.route("/loans", loanApp);
+
+app
+  .use(jwtGuardMiddleware)
+  .use(userMiddleware)
+  .use(trailMiddleware)
+  .route("/admin/books", adminBookRoute)
+  .route("/admin/book-covers", bookCoversApp)
+  .route("/admin/loans", loanApp);
 
 export default app;

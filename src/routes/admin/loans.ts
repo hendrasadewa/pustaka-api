@@ -1,21 +1,21 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-
-import { Env } from "../../configs/environments";
-import { getBookById, updateBook } from "../../database/queries/book-queries";
-import { getLoans, getLoanById, createLoan, returnLoan } from "../../database/queries/book-loan-queries";
-import { isBookAvailable } from "../books/helpers";
-import { assertBookExists } from "../books/entity";
-import { ok, okList } from "../../utils/response";
-import { parsePagination } from "../../utils/pagination";
-import { parseId } from "../../utils/requests";
-import { jwtGuardMiddleware } from "../../middlewares/jwt-guard";
 import { HTTPException } from "hono/http-exception";
 
-import { type BookLoanEntity, assertLoanExists, assertNotReturned } from "./entity";
-import { LoanCreateSchema } from "./dto";
+import { getBookById, updateBook } from "../../database/queries/book-queries";
+import { getLoans, getLoanById, createLoan, returnLoan } from "../../database/queries/book-loan-queries";
+import { jwtGuardMiddleware } from "../../middlewares/jwt-middleware";
+import { isBookAvailable } from "../../domains/books/helpers";
+import { assertBookExists } from "../../domains/books/entity";
+import { ok, okList } from "../../utils/response";
+import { parsePagination } from "../../utils/requests";
+import { parseId } from "../../utils/requests";
 
-const loanApp = new Hono<{ Bindings: Env }>();
+import { type BookLoanEntity, assertLoanExists, assertNotReturned } from "../../domains/loans/entity";
+import { LoanCreateSchema } from "../../domains/loans/dto";
+import { APIConfig } from "../../configs/api";
+
+const loanApp = new Hono<APIConfig>();
 
 loanApp
   .get("/", async (ctx) => {

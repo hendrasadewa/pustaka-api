@@ -1,7 +1,7 @@
 import { count, eq } from "drizzle-orm";
 import { db } from "../connection";
 import { booksTable } from "../schema";
-import { toBookEntity, type BookEntity } from "../../routes/books/entity";
+import { toBookEntity, type BookEntity } from "../../domains/books/entity";
 import type { PaginationParams } from "../../types/API";
 
 type BookInsert = typeof booksTable.$inferInsert;

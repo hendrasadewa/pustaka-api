@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db } from "../connection";
 import { usersTable } from "../schema";
-import { toUserEntity, type UserEntity } from "../../routes/users/entity";
+import { toUserEntity, type UserEntity } from "../../domains/users/entity";
 
 type UserInsert = typeof usersTable.$inferInsert;
 type UserUpdate = Partial<Omit<UserInsert, "id" | "createdAt">>;
